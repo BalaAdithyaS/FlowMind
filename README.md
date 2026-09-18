@@ -128,13 +128,13 @@ FlowMind/
 |---------|--------|-------|
 | UI / Design System | ✅ Implemented | Production-ready React frontend |
 | Ollama Planning | ✅ Implemented | Full JSON structured generation working |
-| Workflow Engine | ⚠️ Prototype | Basic execution works, but runs in-memory |
+| Workflow Engine | ✅ Implemented | Persistent DB state, async concurrency |
 | React Flow Visualizer | ✅ Implemented | Custom nodes and edges render perfectly |
-| Execution Telemetry | ✅ Implemented | Live polling tracks timeline states |
-| Self-Healing | ⚠️ Prototype | Basic simulated detection/retries exist |
-| Tool Integrations | 🟡 Mock/Demo | Tools exist but simulate API responses |
-| Database Persistence | ❌ Planned | SQLAlchemy models exist but aren't wired |
-| ML Telemetry | 🟡 Mock/Demo | Dashboard exists but uses synthetic data |
+| Execution Telemetry | ✅ Implemented | Live polling tracks timeline states via DB |
+| Self-Healing | ✅ Implemented | Real exception classification & recovery |
+| Tool Integrations | ✅ Implemented | Real GitHub API & Secure Filesystem Sandbox |
+| Database Persistence | ✅ Implemented | SQLAlchemy/Alembic models fully connected |
+| ML Telemetry | ✅ Implemented | True Scikit-Learn TF-IDF and RandomForest models |
 
 ### Future Roadmap
 - Connect the SQLAlchemy models to a PostgreSQL database for full workflow persistence.

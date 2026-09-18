@@ -1,75 +1,74 @@
-from typing import Any
-
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from typing import Dict, Any, List
 from sqlalchemy.orm import Session
-
-from ..core.database import get_db
 from ..schemas.workflow import WorkflowSchema
 from ..workflow.engine import WorkflowEngine
+from ..core.database import get_db
+from ..models.workflow import Workflow, WorkflowExecution, ExecutionEvent
+import uuid
 
 router = APIRouter(prefix="/workflows", tags=["Workflows"])
 engine = WorkflowEngine()
 
-# In-memory store for prototype (use DB in production)
-workflows_store = {}
-executions_store = {}
-
-@router.post("/", response_model=dict[str, str])
+@router.post("/", response_model=Dict[str, str])
 async def create_workflow(workflow: WorkflowSchema, db: Session = Depends(get_db)):
-    # Generate an ID and save it
-    import uuid
     workflow_id = str(uuid.uuid4())
-    workflows_store[workflow_id] = workflow
+    db_workflow = Workflow(
+        id=workflow_id,
+        name=workflow.name,
+        description=workflow.description,
+        definition=workflow.model_dump()
+    )
+    db.add(db_workflow)
+    db.commit()
     return {"id": workflow_id, "message": "Workflow created successfully"}
 
 @router.post("/{workflow_id}/run")
-async def run_workflow(workflow_id: str):
-    if workflow_id not in workflows_store:
+async def run_workflow(workflow_id: str, db: Session = Depends(get_db)):
+    workflow_record = db.query(Workflow).filter(Workflow.id == workflow_id).first()
+    if not workflow_record:
         raise HTTPException(status_code=404, detail="Workflow not found")
         
-    workflow = workflows_store[workflow_id]
-    
-    execution_id = await engine.execute(workflow)
-    executions_store[execution_id] = engine.active_executions.get(execution_id)
-    
+    workflow_schema = WorkflowSchema(**workflow_record.definition)
+    execution_id = await engine.execute(workflow_schema, db_session=db)
     return {"message": "Workflow execution started", "execution_id": execution_id}
 
 @router.post("/{workflow_id}/webhook")
-async def trigger_webhook(workflow_id: str, payload: dict[str, Any]):
-    if workflow_id not in workflows_store:
+async def trigger_webhook(workflow_id: str, payload: Dict[str, Any], db: Session = Depends(get_db)):
+    workflow_record = db.query(Workflow).filter(Workflow.id == workflow_id).first()
+    if not workflow_record:
         raise HTTPException(status_code=404, detail="Workflow not found")
         
-    workflow = workflows_store[workflow_id]
-    
-    # We pass the payload to the engine as trigger data
-    execution_id = await engine.execute(workflow, trigger_data=payload)
-    executions_store[execution_id] = engine.active_executions.get(execution_id)
-    
+    workflow_schema = WorkflowSchema(**workflow_record.definition)
+    execution_id = await engine.execute(workflow_schema, trigger_data=payload, db_session=db)
     return {"message": "Webhook received and execution started", "execution_id": execution_id}
 
 @router.get("/")
-async def list_workflows():
-    return [{"id": k, "name": v.name, "description": v.description} for k, v in workflows_store.items()]
+async def list_workflows(db: Session = Depends(get_db)):
+    workflows = db.query(Workflow).all()
+    return [{"id": w.id, "name": w.name, "description": w.description} for w in workflows]
 
 @router.get("/stats")
-async def get_dashboard_stats():
-    active_workflows = len(workflows_store)
+async def get_dashboard_stats(db: Session = Depends(get_db)):
+    active_workflows = db.query(Workflow).count()
     
-    total_executions = len(executions_store)
-    completed_executions = sum(1 for e in executions_store.values() if e.get("status") == "COMPLETED")
+    total_executions = db.query(WorkflowExecution).count()
+    completed_executions = db.query(WorkflowExecution).filter(WorkflowExecution.status == "COMPLETED").count()
     
     success_rate = (completed_executions / total_executions * 100) if total_executions > 0 else 0.0
     
-    # Mocking recovery rate based on completed executions to show something interesting, 
-    # since we don't permanently store 'did_recover' flags easily yet.
-    recovery_rate = (success_rate * 0.8) if success_rate > 0 else 0.0
+    recovery_events = db.query(ExecutionEvent).filter(ExecutionEvent.event_type == "RECOVERY_STARTED").count()
+    recovery_rate = (recovery_events / total_executions * 100) if total_executions > 0 else 0.0
     
-    # Calculate intent distribution (tools used across workflows)
+    # Calculate intent distribution
     tool_counts = {}
-    for wf in workflows_store.values():
-        for step in wf.steps:
-            tool = step.tool
-            tool_counts[tool] = tool_counts.get(tool, 0) + 1
+    workflows = db.query(Workflow).all()
+    for w in workflows:
+        if "steps" in w.definition:
+            for step in w.definition["steps"]:
+                tool = step.get("tool")
+                if tool:
+                    tool_counts[tool] = tool_counts.get(tool, 0) + 1
             
     intent_distribution = [{"name": tool, "count": count} for tool, count in tool_counts.items()]
     
