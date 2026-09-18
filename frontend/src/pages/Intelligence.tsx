@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Brain, Activity, Target, Zap, Clock, ShieldAlert, Cpu } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
+import { Brain, Zap, Loader2 } from 'lucide-react';
+import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar, Tooltip } from 'recharts';
 
 export default function Intelligence() {
   const [metrics, setMetrics] = useState<any>(null);
@@ -19,16 +19,39 @@ export default function Intelligence() {
       });
   }, []);
 
+  const handleRetrain = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:8000/ml/retrain', { method: 'POST' });
+      if (response.ok) {
+        await response.json();
+        const metricsRes = await fetch('http://localhost:8000/ml/metrics');
+        setMetrics(await metricsRes.json());
+      }
+    } catch (e) {
+      console.error('Failed to retrain', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (loading) {
-    return <div className="p-8 text-slate-400">Loading Intelligence Models...</div>;
+    return (
+      <div className="p-8 text-slate-400 flex flex-col items-center justify-center min-h-[50vh]">
+        <Loader2 className="w-8 h-8 animate-spin mb-4 text-purple-400" />
+        Loading Intelligence Models...
+      </div>
+    );
   }
 
   const accuracy = metrics ? metrics.accuracy * 100 : 0;
   const precision = metrics ? metrics.precision * 100 : 0;
   const recall = metrics ? metrics.recall * 100 : 0;
   const f1 = metrics ? metrics.f1_score * 100 : 0;
+  const datasetSize = metrics ? metrics.dataset_size : 0;
+  const lastTrained = metrics?.last_trained ? new Date(metrics.last_trained).toLocaleString() : 'Never';
   
-  const featureImportances = metrics ? [
+  const featureImportances = metrics?.feature_importances ? [
     { subject: 'Steps', A: metrics.feature_importances.num_steps * 100, fullMark: 100 },
     { subject: 'Tools', A: metrics.feature_importances.num_tools * 100, fullMark: 100 },
     { subject: 'External', A: metrics.feature_importances.external_services * 100, fullMark: 100 },
@@ -40,26 +63,26 @@ export default function Intelligence() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-400">ML Intelligence</h1>
-          <p className="text-slate-400 mt-2">Scikit-Learn Intent Classification & Success Prediction Pipeline</p>
+          <p className="text-slate-400 mt-2">Scikit-Learn Intent Classification Pipeline</p>
         </div>
+        <button 
+          onClick={handleRetrain}
+          className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium shadow-lg transition-colors flex items-center gap-2"
+        >
+          <Brain className="w-4 h-4" />
+          Retrain Model
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
         <div className="glass-panel rounded-xl p-6 relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-4 opacity-10">
-            <Target size={64} />
-          </div>
           <p className="text-slate-400 text-sm font-medium mb-1">Model Accuracy</p>
           <div className="flex items-end gap-3">
             <h3 className="text-3xl font-bold text-slate-200">{accuracy.toFixed(1)}%</h3>
-            <span className="text-emerald-400 text-sm mb-1 font-medium">RandomForest</span>
           </div>
         </div>
 
         <div className="glass-panel rounded-xl p-6 relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-4 opacity-10">
-            <Activity size={64} />
-          </div>
           <p className="text-slate-400 text-sm font-medium mb-1">Precision</p>
           <div className="flex items-end gap-3">
             <h3 className="text-3xl font-bold text-slate-200">{precision.toFixed(1)}%</h3>
@@ -67,9 +90,6 @@ export default function Intelligence() {
         </div>
         
         <div className="glass-panel rounded-xl p-6 relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-4 opacity-10">
-            <Activity size={64} />
-          </div>
           <p className="text-slate-400 text-sm font-medium mb-1">Recall</p>
           <div className="flex items-end gap-3">
             <h3 className="text-3xl font-bold text-slate-200">{recall.toFixed(1)}%</h3>
@@ -77,13 +97,20 @@ export default function Intelligence() {
         </div>
 
         <div className="glass-panel rounded-xl p-6 relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-4 opacity-10">
-            <Brain size={64} />
-          </div>
           <p className="text-slate-400 text-sm font-medium mb-1">F1 Score</p>
           <div className="flex items-end gap-3">
             <h3 className="text-3xl font-bold text-slate-200">{f1.toFixed(1)}%</h3>
           </div>
+        </div>
+
+        <div className="glass-panel rounded-xl p-6 relative overflow-hidden bg-slate-800/50">
+          <p className="text-slate-400 text-sm font-medium mb-1">Training Samples</p>
+          <div className="flex items-end gap-3">
+            <h3 className="text-3xl font-bold text-purple-400">{datasetSize}</h3>
+          </div>
+          <p className="text-xs text-slate-500 mt-2 truncate" title={lastTrained}>
+            Last trained: {lastTrained}
+          </p>
         </div>
       </div>
 

@@ -13,6 +13,7 @@ from ..recovery.strategy_selector import StrategySelector
 from ..recovery.recovery_executor import RecoveryExecutor
 from ..models.workflow import WorkflowExecution, StepExecution, ExecutionEvent
 from ..core.database import SessionLocal
+from ..api.ws import manager
 
 class WorkflowEngine:
     def __init__(self):
@@ -30,6 +31,22 @@ class WorkflowEngine:
         )
         db.add(event)
         db.commit()
+        
+        # Broadcast real-time event to WebSocket clients safely via asyncio background task
+        ws_message = {
+            "event": event_type,
+            "execution_id": execution_id,
+            "step_id": step_id,
+            "timestamp": event.timestamp.isoformat(),
+            "data": details or {}
+        }
+        
+        # Fire and forget the broadcast so it doesn't block the sync execution loop
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(manager.broadcast_to_execution(execution_id, ws_message))
+        except RuntimeError:
+            pass # No running loop (e.g. during some sync test)
 
     async def execute(self, workflow: WorkflowSchema, db_session: Session = None, trigger_data: Dict[str, Any] = None) -> str:
         db = db_session if db_session else SessionLocal()

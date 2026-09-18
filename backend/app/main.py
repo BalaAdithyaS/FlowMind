@@ -16,7 +16,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from app.api import ai, workflows, executions, ml
+from app.api import ai, workflows, executions, ml, ws
 from app.tools.registry import init_registry
 
 # Initialize tools
@@ -27,6 +27,7 @@ app.include_router(ai.router)
 app.include_router(workflows.router)
 app.include_router(executions.router)
 app.include_router(ml.router)
+app.include_router(ws.router)
 
 @app.get("/health")
 def health_check():

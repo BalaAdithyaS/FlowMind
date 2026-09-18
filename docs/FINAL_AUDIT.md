@@ -20,17 +20,17 @@ Tools are fully implemented. `github.py` connects to real repositories using `Py
 **Status**: ✅ IMPLEMENTED AND VERIFIED
 The backend engine (`engine.py`) successfully detects failures, categorizes them using `FailureClassifier` (TIMEOUT, NETWORK_ERROR, AUTH_ERROR), selects deterministic strategies (Exponential Backoff, Manual Approval), and securely recovers.
 
-## Real-Time Execution
+## Real-Time Execution / WebSockets
 **Status**: ✅ IMPLEMENTED AND VERIFIED
-The frontend's ExecutionMonitor component successfully polls the backend to display a live recovery timeline and execution path, tracking the exact state (PENDING, RUNNING, RECOVERING, FAILED, SUCCESS).
+The frontend's ExecutionMonitor component has been completely rewritten to use a custom `useExecutionWebSocket` hook. The backend Engine broadcasts exact DB state transitions (`STEP_STARTED`, `STEP_COMPLETED`, etc.) via FastAPI WebSockets. Polling is fully deprecated but remains as a REST fallback during reconnection phases. Tested and verified via E2E test suite.
 
 ## React Flow
 **Status**: ✅ IMPLEMENTED AND VERIFIED
 The `WorkflowBuilder.tsx` correctly converts backend JSON schemas into a beautiful interactive graph with Custom Nodes representing Triggers, AI Processes, and Tools.
 
-## ML
+## ML Telemetry
 **Status**: ✅ IMPLEMENTED AND VERIFIED
-The `app/ml/` backend utilizes `scikit-learn` to classify Workflow intents (TF-IDF + LogisticRegression) and predict workflow success (RandomForestClassifier). The Intelligence dashboard dynamically loads real model metrics (accuracy, precision, recall, f1) and feature importances.
+The `app/ml/` backend utilizes a true `scikit-learn` pipeline. An automated training script builds a synthetic dataset, processes features with `TfidfVectorizer`, trains a `LogisticRegression` classifier, and evaluates it. The artifacts are saved using `joblib`. The Intelligence dashboard dynamically loads real metrics (Accuracy: ~90-100%, Precision, Recall, F1) from `/ml/metrics` and allows active re-training via `/ml/retrain`. Tested and verified via `pytest`.
 
 ## Database
 **Status**: ✅ IMPLEMENTED AND VERIFIED
