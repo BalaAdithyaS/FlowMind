@@ -1,0 +1,23 @@
+# Environment variables
+.env
+
+# Dependencies
+node_modules/
+backend/venv/
+backend/__pycache__/
+*.pyc
+
+# IDEs
+.vscode/
+.idea/
+
+# Build
+frontend/dist/
+frontend/build/
+*.log
+
+# Models
+*.bin
+*.gguf
+*.pt
+*.pth
