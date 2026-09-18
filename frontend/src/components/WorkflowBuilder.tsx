@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect, memo } from 'react';
 import {
   ReactFlow,
-  MiniMap,
   Controls,
   Background,
   Panel,
@@ -15,7 +14,7 @@ import {
   type OnSelectionChangeParams
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Plus, X, Trash2, Zap, Brain, Wrench, GitBranch, ShieldCheck, PlayCircle, StopCircle } from 'lucide-react';
+import { Plus, X, Trash2, Zap, Brain, Wrench, GitBranch, ShieldCheck, PlayCircle } from 'lucide-react';
 
 const getNodeTypeStyle = (tool: string) => {
   if (tool === 'trigger') return { color: '#8b5cf6', icon: Zap, label: 'TRIGGER' };

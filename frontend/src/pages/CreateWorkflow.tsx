@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import WorkflowBuilder from '../components/WorkflowBuilder';
 import ExecutionMonitor from '../components/ExecutionMonitor';
-import { Sparkles, Brain, Lock, CheckCircle2, Loader2, Play } from 'lucide-react';
+import { Sparkles, Brain, CheckCircle2, Loader2, Play } from 'lucide-react';
 
 export default function CreateWorkflow() {
   const [prompt, setPrompt] = useState("");

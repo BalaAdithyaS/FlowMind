@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Activity, CheckCircle2, AlertTriangle, RefreshCcw, Clock, Brain } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, Tooltip, ResponsiveContainer } from 'recharts';
 
 const perfData = [
   { name: '1', time: 4.2 },
